@@ -30,6 +30,9 @@ const createApp = (mongoClient) => {
   // Basic CRUD
   app.use(resourcePath, routers.basicCRUD({ mongoClient, db, collection: resourceCollection, secret }))
 
+  // Searcher
+  app.use(`${resourcePath}/searcher`, routers.searcher({ mongoClient, db, collection: resourceCollection, secret }))
+
   // Error handling middleware
   app.use((err, req, res, next) => {
     if (!err.statusCode) err.statusCode = 500
