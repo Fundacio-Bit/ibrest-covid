@@ -9,7 +9,11 @@ module.exports = ({ mongoClient, db, collection, secret }) => {
   router.get('/from/:from/to/:to/island/:island',
     verifyJWT({ secret }),
     validateJsonSchema({ schema: searcherParamsSchema, instanceToValidate: (req) => req.params }),
-    mongoFind({ mongoClient, db, collection, query: (req) => ({ island: req.params.island }) }),
+    (req, res, next) => {
+      req.mongoQuery = req.params.island === '--all--' ? {} : { island: req.params.island }
+      next()
+    },
+    mongoFind({ mongoClient, db, collection, query: (req) => req.mongoQuery }),
     (req, res, next) => {
       const { results } = res.locals
       results.forEach(x => x.numDate = parseInt(x.date.replace(/-/g, '')))
