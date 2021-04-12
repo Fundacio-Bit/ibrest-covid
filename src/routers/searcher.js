@@ -1,19 +1,24 @@
 const express = require('express')
 const { validateJsonSchema, verifyJWT } = require('@fundaciobit/express-middleware')
-const { mongoFind } = require('@fundaciobit/express-redis-mongo')
 const { searcherParamsSchema } = require('../schemas')
 
 module.exports = ({ mongoClient, db, collection, secret }) => {
   const router = express.Router()
 
-  router.get('/from/:from/to/:to/island/:island',
+  router.get('/from/:from/to/:to/island/:island/order/:order',
     verifyJWT({ secret }),
     validateJsonSchema({ schema: searcherParamsSchema, instanceToValidate: (req) => req.params }),
-    (req, res, next) => {
-      req.mongoQuery = req.params.island === '--all--' ? {} : { island: req.params.island }
-      next()
+    async (req, res, next) => {
+      try {
+        const query = req.params.island === '--all--' ? {} : { island: req.params.island }
+        const order = req.params.order === 'desc' ? -1 : 1
+        const docs = await mongoClient.db(db).collection(collection).find(query).limit(0).sort({ date: order }).toArray()
+        res.locals.results = docs
+        next()
+      } catch (err) {
+        next(err)
+      }
     },
-    mongoFind({ mongoClient, db, collection, query: (req) => req.mongoQuery }),
     (req, res, next) => {
       const { results } = res.locals
       results.forEach(x => x.numDate = parseInt(x.date.replace(/-/g, '')))
@@ -21,19 +26,25 @@ module.exports = ({ mongoClient, db, collection, secret }) => {
       const numFrom = parseInt(from.replace(/-/g, ''))
       const numTo = parseInt(to.replace(/-/g, ''))
       const filteredResults = results.filter(x => x.numDate >= numFrom && x.numDate <= numTo)
-
-      const compare = (a,b) => {
-        if (a.numDate < b.numDate) { return -1 }
-        if (a.numDate > b.numDate) { return 1 }
-        return 0
-      }
-
-      filteredResults.sort(compare)
       filteredResults.forEach(x => delete x.numDate)
       res.locals.filteredResults = filteredResults
       next()
     },
     (req, res) => { res.status(200).json(res.locals.filteredResults) }
+  )
+
+  router.get('/lastrecord',
+    verifyJWT({ secret }),
+    async (req, res, next) => {
+      try {
+        const docs = await mongoClient.db(db).collection(collection).find({}).limit(0).sort({ date: -1 }).toArray()
+        res.locals.results = docs
+        next()
+      } catch (err) {
+        next(err)
+      }
+    },
+    (req, res) => { res.status(200).json(res.locals.results.slice(0, 4)) }
   )
 
   return router
