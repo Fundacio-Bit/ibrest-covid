@@ -4,7 +4,17 @@ const bodyParser = require('body-parser')
 const cors = require('cors')
 const { MongoClient } = require('mongodb')
 const routers = require('./src/routers')
-const { mongodbUri, db, resourceCollection, adminsCollection, resourcePath, serverIp, serverPort } = require('./server.config')
+const {
+  mongodbUri,
+  db,
+  resourceCollection,
+  alertsCollection,
+  adminsCollection,
+  resourcePath,
+  resourceAlertsPath,
+  serverIp,
+  serverPort
+} = require('./server.config')
 
 const secret = process.env.SECRET_KEY
 
@@ -32,6 +42,9 @@ const createApp = (mongoClient) => {
 
   // Searcher
   app.use(`${resourcePath}/searcher`, routers.searcher({ mongoClient, db, collection: resourceCollection, secret }))
+
+  // Basic CRUD (Alerts)
+  app.use(resourceAlertsPath, routers.basicCRUDalerts({ mongoClient, db, collection: alertsCollection, secret }))
 
   // Error handling middleware
   app.use((err, req, res, next) => {
