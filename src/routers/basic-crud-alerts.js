@@ -11,7 +11,7 @@ module.exports = ({ mongoClient, db, collection, secret }) => {
     verifyJWT({ secret }),
     validateJsonSchema({ schema: alertSchema, instanceToValidate: (req) => req.body }),
     mongoInsertOne({ mongoClient, db, collection, docToInsert: (req, res) => req.body }),
-    mongoCreateIndex({ mongoClient, db, collection, keys: { date: 1 }, options: { sparse: true, unique: true } }),
+    // mongoCreateIndex({ mongoClient, db, collection, keys: { date: 1 }, options: { sparse: true, unique: true } }),
     (req, res) => { res.status(200).json({ _id: res.locals.insertedId }) }
   )
 
